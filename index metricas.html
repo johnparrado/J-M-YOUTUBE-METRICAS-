@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>J&amp;M Métricas · análisis profesional de YouTube</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+
+<style>
+:root{
+  --accent:#FF3B3B; --accent-2:#C50000;
+  --bg:#0B0D12; --surface:#14171F; --surface-2:#1A1E28;
+  --border:#242a36; --text:#ECEFF4; --dim:#828a99;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;color:var(--text);min-height:100vh;
+  background:radial-gradient(900px 500px at 80% -10%, color-mix(in srgb,var(--accent) 13%,transparent), transparent 70%),radial-gradient(700px 400px at 0% 0%, color-mix(in srgb,var(--accent-2) 10%,transparent), transparent 70%),var(--bg);
+  -webkit-font-smoothing:antialiased;}
+.hidden{display:none!important}
+.brand{font-family:'Space Grotesk';font-weight:700;font-size:22px;letter-spacing:-.5px}
+.brand .dot{color:var(--accent)}.brand .m{color:var(--dim);font-weight:500}
+
+/* LANDING */
+#view-auth{max-width:1040px;margin:0 auto;padding:34px 24px 60px}
+.nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:8vh}
+.nav-pill{font-size:12px;color:var(--dim);border:1px solid var(--border);padding:6px 13px;border-radius:20px}
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:center}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent);padding:6px 13px;border-radius:20px;margin-bottom:22px}
+.hero h1{font-family:'Space Grotesk';font-weight:700;font-size:clamp(32px,4.6vw,52px);line-height:1.05;letter-spacing:-1.4px;margin-bottom:20px}
+.hero h1 em{font-style:normal;background:linear-gradient(120deg,var(--accent),#ff8a3b);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{color:var(--dim);font-size:17px;line-height:1.6;max-width:460px;margin-bottom:28px}
+.benefits{display:flex;flex-direction:column;gap:13px}
+.benefit{display:flex;align-items:flex-start;gap:11px;font-size:14.5px}
+.auth-card{background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:30px}
+.auth-tabs{display:flex;gap:6px;background:var(--surface-2);padding:5px;border-radius:13px;margin-bottom:24px}
+.auth-tab{flex:1;text-align:center;padding:10px;border-radius:9px;font-size:14px;font-weight:600;color:var(--dim);cursor:pointer;border:none;background:none;font-family:'Inter';transition:.15s}
+.auth-tab.active{background:var(--bg);color:var(--text)}
+.field{margin-bottom:15px}
+.field label{display:block;font-size:13px;color:var(--dim);margin-bottom:7px;font-weight:500}
+.field input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:13px 15px;color:var(--text);font-size:15px;font-family:'Inter';outline:none;transition:.2s}
+.field input:focus{border-color:color-mix(in srgb,var(--accent) 60%,var(--border));box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 12%,transparent)}
+.field input::placeholder{color:#565d6c}
+.btn-primary{width:100%;background:var(--accent);color:#fff;border:none;font-weight:700;font-size:15px;padding:14px;border-radius:12px;cursor:pointer;font-family:'Inter';display:flex;align-items:center;justify-content:center;gap:8px;transition:filter .15s,transform .1s;margin-top:6px}
+.btn-primary:hover:not(:disabled){filter:brightness(1.08)}.btn-primary:active:not(:disabled){transform:scale(.98)}
+.btn-primary:disabled{opacity:.7;cursor:wait}
+.auth-foot{font-size:12px;color:var(--dim);text-align:center;margin-top:16px;line-height:1.5}
+.msg{font-size:13px;padding:11px 14px;border-radius:11px;margin-top:14px;display:none;line-height:1.45}
+.msg.error{display:block;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);color:#fca5a5}
+.msg.ok{display:block;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.3);color:#86efac}
+.config-warn{background:rgba(185,138,46,.1);border:1px solid rgba(185,138,46,.3);color:#d8a93e;font-size:13px;padding:13px 15px;border-radius:12px;margin-bottom:20px;line-height:1.5;display:none}
+.spin{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+.ico{display:inline-block;vertical-align:-.12em}
+
+/* APP */
+#view-app{max-width:1000px;margin:0 auto;padding:24px;display:none}
+.app-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:26px}
+.app-user{display:flex;align-items:center;gap:12px}
+.app-user .who{font-size:13px;color:var(--dim)}.app-user .who b{color:var(--text);font-weight:600}
+.logout{background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:13px;padding:9px 14px;border-radius:11px;cursor:pointer;font-family:'Inter'}
+.logout:hover{border-color:color-mix(in srgb,var(--accent) 50%,var(--border))}
+.url-bar{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:7px 7px 7px 16px;transition:.2s}
+.url-bar:focus-within{border-color:color-mix(in srgb,var(--accent) 60%,var(--border));box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 12%,transparent)}
+.url-bar input{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:15px;font-family:'JetBrains Mono',monospace;min-width:0}
+.url-bar input::placeholder{color:#565d6c}
+.url-bar button{background:var(--accent);color:#fff;border:none;font-weight:600;font-size:14px;padding:11px 22px;border-radius:11px;cursor:pointer;font-family:'Inter';white-space:nowrap}
+.url-bar button:hover:not(:disabled){filter:brightness(1.08)}.url-bar button:disabled{opacity:.8;cursor:wait}
+.hint{font-size:12px;color:var(--dim);margin-top:10px;padding-left:4px}
+
+.banner{display:flex;align-items:flex-start;gap:8px;font-size:12.5px;margin:18px 0 4px;padding:11px 14px;border-radius:11px;line-height:1.5}
+.banner.demo{color:#d8a93e;background:rgba(185,138,46,.08);border:1px solid rgba(185,138,46,.22)}
+.banner.real{color:#86efac;background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.25)}
+.banner.info{color:#93c5fd;background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.25)}
+
+#results{margin-top:8px;display:none}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:20px}
+.card-title{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;color:var(--dim);margin-bottom:16px}
+.card-title svg{color:var(--accent)}
+.note{font-size:12.5px;color:var(--dim);line-height:1.6}
+.mb16{margin-bottom:16px}
+.section-h{font-family:'Space Grotesk';font-weight:700;font-size:20px;letter-spacing:-.4px;margin:28px 0 14px;display:flex;align-items:center;gap:9px}
+.section-h svg{color:var(--accent)}
+
+/* perfil canal */
+.profile{display:flex;align-items:center;gap:14px;margin:16px 0 18px}
+.avatar{width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:grid;place-items:center;font-family:'Space Grotesk';font-weight:700;font-size:24px;color:#fff;overflow:hidden;flex-shrink:0}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.profile-name{font-family:'Space Grotesk';font-weight:600;font-size:21px;letter-spacing:-.3px}
+.profile-sub{font-size:12.5px;color:var(--dim);margin-top:4px}
+.platform-pill{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 10px;border-radius:20px;color:var(--accent);background:color-mix(in srgb,var(--accent) 13%,transparent);margin-left:6px}
+.desc{font-size:13px;color:var(--dim);line-height:1.6;margin:-4px 0 18px;max-width:760px}
+
+/* KPIs */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px}
+.kpi{display:flex;flex-direction:column}
+.kpi-ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent);margin-bottom:14px}
+.kpi-val{font-family:'Space Grotesk';font-weight:700;font-size:28px;letter-spacing:-1px;line-height:1}
+.kpi-label{font-size:13px;margin-top:7px;font-weight:500}
+.kpi-sub{font-size:11.5px;color:var(--dim);margin-top:3px}
+
+/* resumen estratégico */
+.strat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.stat-box{background:var(--surface-2);border-radius:13px;padding:15px}
+.stat-label{font-size:11.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.stat-label svg{color:var(--accent);opacity:.8}
+.stat-val{font-family:'Space Grotesk';font-weight:600;font-size:19px;line-height:1.15}
+.stat-desc{font-size:11.5px;color:var(--dim);margin-top:4px}
+
+/* insights */
+.insights{display:flex;flex-direction:column;gap:14px}
+.insight{display:flex;gap:12px;align-items:flex-start}
+.insight-ic{width:32px;height:32px;border-radius:9px;flex-shrink:0;display:grid;place-items:center;color:var(--accent);background:color-mix(in srgb,var(--accent) 13%,transparent)}
+.insight b{font-weight:600}
+.insight-txt{font-size:13.5px;line-height:1.55;color:var(--text)}
+.insight-txt span{color:var(--dim)}
+
+/* chips */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-size:12.5px;padding:6px 12px;border-radius:20px;background:var(--surface-2);color:var(--text);border:1px solid var(--border);font-family:'JetBrains Mono'}
+
+/* virales */
+.viral{display:flex;gap:16px;padding:16px;background:var(--surface-2);border-radius:14px;margin-bottom:12px;align-items:flex-start}
+.viral-left{display:flex;flex-direction:column;gap:7px;flex-shrink:0;width:148px}
+.viral-thumb{width:148px;height:83px;border-radius:9px;object-fit:cover;background:var(--bg);display:block}
+.viral-rank{position:absolute;top:6px;left:6px;width:24px;height:24px;border-radius:7px;background:rgba(0,0,0,.72);color:#fff;display:grid;place-items:center;font-family:'Space Grotesk';font-weight:700;font-size:13px}
+.vbtn{font-size:11.5px;text-align:center;padding:7px 8px;border-radius:8px;background:var(--accent);color:#fff;text-decoration:none;font-weight:600;display:flex;align-items:center;justify-content:center;gap:5px;transition:filter .15s}
+.vbtn:hover{filter:brightness(1.12)}
+.vbtn.ghost{background:var(--surface);border:1px solid var(--border);color:var(--text)}
+.viral-body{flex:1;min-width:0}
+.viral-title{font-size:15px;font-weight:600;line-height:1.35;margin-bottom:9px}
+.viral-meta{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:9px}
+.viral-tag{font-size:11.5px;padding:3px 9px;border-radius:20px;font-family:'JetBrains Mono';display:flex;align-items:center;gap:4px}
+.viral-tag.factor{background:color-mix(in srgb,var(--accent) 18%,transparent);color:#ff7a7a}
+.viral-tag.plain{background:var(--bg);color:var(--dim)}
+.viral-sub{font-size:12px;color:var(--dim);margin-bottom:9px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.viral-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:2px}
+.vtag{font-size:10.5px;padding:2px 8px;border-radius:12px;background:var(--bg);color:var(--dim);font-family:'JetBrains Mono'}
+.why-label,.seo-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--accent);font-weight:700;margin:11px 0 6px}
+.reasons{list-style:none;display:flex;flex-direction:column;gap:5px}
+.reasons li{font-size:12.5px;color:var(--dim);line-height:1.5;padding-left:16px;position:relative}
+.reasons li::before{content:"→";position:absolute;left:0;color:var(--accent)}
+.seo-chips{display:flex;flex-wrap:wrap;gap:6px}
+.seo-chip{font-size:11px;padding:3px 9px;border-radius:12px;background:color-mix(in srgb,var(--accent) 13%,transparent);color:var(--text)}
+
+/* persona */
+.persona-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.persona-attr{background:var(--surface-2);border-radius:12px;padding:14px}
+.persona-attr .pa-label{font-size:11.5px;color:var(--dim);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.persona-attr .pa-label svg{color:var(--accent)}
+.persona-attr .pa-val{font-size:14px;font-weight:500;line-height:1.4}
+.persona-story{font-size:13.5px;color:var(--text);line-height:1.65;background:color-mix(in srgb,var(--accent) 7%,transparent);border:1px solid color-mix(in srgb,var(--accent) 18%,transparent);border-radius:12px;padding:15px}
+
+.spark{width:100%;height:auto}
+
+/* recs */
+.recs{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.rec-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.rec-ic{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;color:var(--accent);background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 22%,transparent),color-mix(in srgb,var(--accent-2) 22%,transparent))}
+.rec-impact{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;color:var(--dim);background:var(--surface-2)}
+.rec-label{font-family:'Space Grotesk';font-weight:600;font-size:16px;margin-bottom:7px}
+.rec-body{font-size:13.5px;color:var(--dim);line-height:1.55}
+
+.foot{display:flex;align-items:center;justify-content:center;gap:7px;color:#4a505e;font-size:12px;margin-top:32px;padding-bottom:8px}
+
+@media(max-width:820px){
+  .hero{grid-template-columns:1fr;gap:32px}
+  .kpi-grid,.strat-grid,.recs,.persona-grid{grid-template-columns:1fr 1fr}
+  .viral-left{width:124px}.viral-thumb{width:124px;height:70px}
+  .app-head{flex-direction:column;align-items:flex-start;gap:12px}
+}
+@media(max-width:560px){
+  .kpi-grid,.strat-grid,.recs,.persona-grid{grid-template-columns:1fr}
+  .viral{flex-direction:column}.viral-left{width:100%}.viral-thumb{width:100%;height:auto;aspect-ratio:16/9}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- LANDING -->
+<div id="view-auth">
+  <div class="nav"><div class="brand">J&amp;M <span class="m">Métricas</span><span class="dot">.</span></div><span class="nav-pill">Análisis de YouTube</span></div>
+  <div class="hero">
+    <div>
+      <span class="hero-eyebrow">▶ Inteligencia de canales de YouTube</span>
+      <h1>Descifra la estrategia de <em>cualquier canal</em> de YouTube.</h1>
+      <p>Pega el enlace de un canal y obtén un informe completo: métricas reales, su estrategia de contenido, los videos que se volvieron virales y por qué, y el perfil de su audiencia. Gratis.</p>
+      <div class="benefits">
+        <div class="benefit">✓&nbsp; Métricas reales: suscriptores, vistas y rendimiento</div>
+        <div class="benefit">✓&nbsp; Su estrategia descifrada: formato, frecuencia y títulos</div>
+        <div class="benefit">✓&nbsp; Videos virales analizados + buyer persona</div>
+      </div>
+    </div>
+    <div class="auth-card">
+      <div id="config-warn" class="config-warn"></div>
+      <div class="auth-tabs"><button class="auth-tab active" data-tab="signup">Crear cuenta</button><button class="auth-tab" data-tab="login">Entrar</button></div>
+      <form id="form-signup" onsubmit="return false">
+        <div class="field"><label>Nombre</label><input id="su-name" type="text" placeholder="Tu nombre" autocomplete="name" /></div>
+        <div class="field"><label>Correo electrónico</label><input id="su-email" type="email" placeholder="tu@correo.com" autocomplete="email" /></div>
+        <div class="field"><label>Contraseña</label><input id="su-pass" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" /></div>
+        <button class="btn-primary" id="btn-signup">Acceder gratis</button>
+        <p class="auth-foot">Al registrarte aceptas recibir consejos por correo. Puedes darte de baja cuando quieras.</p>
+        <div id="msg-signup" class="msg"></div>
+      </form>
+      <form id="form-login" class="hidden" onsubmit="return false">
+        <div class="field"><label>Correo electrónico</label><input id="li-email" type="email" placeholder="tu@correo.com" autocomplete="email" /></div>
+        <div class="field"><label>Contraseña</label><input id="li-pass" type="password" placeholder="Tu contraseña" autocomplete="current-password" /></div>
+        <button class="btn-primary" id="btn-login">Entrar</button>
+        <div id="msg-login" class="msg"></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="view-app">
+  <div class="app-head"><div class="brand">J&amp;M <span class="m">Métricas</span><span class="dot">.</span></div>
+    <div class="app-user"><span class="who">Hola, <b id="user-email">—</b></span><button class="logout" id="btn-logout">Cerrar sesión</button></div></div>
+  <div class="url-bar">
+    <svg class="ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#828a99" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    <input id="url-input" placeholder="https://www.youtube.com/@nombredelcanal" spellcheck="false" />
+    <button id="btn-analyze">Analizar</button>
+  </div>
+  <div class="hint" id="yt-hint"></div>
+  <div id="results"></div>
+  <div class="foot">J&amp;M Métricas · análisis profesional de YouTube</div>
+</div>
+
+<script>
+/* ===================== CONFIGURACIÓN ===================== */
+const SUPABASE_URL      = "https://lqozirpylpflohgtwyhh.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_45TYDwfCVxh5OIrubSlfew_2m2SMExl";
+const YOUTUBE_API_KEY   = "AIzaSyDkvTpHv2ADutcAVnyyOZSmdDV6bchbAMI";
+/* ========================================================= */
+
+const YT_ON = !YOUTUBE_API_KEY.includes("PEGA_AQUI");
+let supa = null;
+const isConfigured = !SUPABASE_URL.includes("PEGA_AQUI") && !SUPABASE_ANON_KEY.includes("PEGA_AQUI");
+if (isConfigured) supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+else { const w=document.getElementById("config-warn"); w.style.display="block"; w.innerHTML="🔧 <b>Falta configurar Supabase.</b> Abre GUÍA.md y pega tus 2 claves."; }
+document.getElementById("yt-hint").innerHTML = YT_ON ? "Pega el enlace de un canal de YouTube para el informe completo." : "Configura tu clave de YouTube (GUÍA.md, Parte 4) para activar el análisis.";
+
+/* ---------- pestañas / auth ---------- */
+document.querySelectorAll(".auth-tab").forEach(tab=>{tab.onclick=()=>{document.querySelectorAll(".auth-tab").forEach(t=>t.classList.remove("active"));tab.classList.add("active");const s=tab.dataset.tab==="signup";document.getElementById("form-signup").classList.toggle("hidden",!s);document.getElementById("form-login").classList.toggle("hidden",s);};});
+function showMsg(id,t,c){const e=document.getElementById(id);e.textContent=t;e.className="msg "+c;}
+function setLoading(btn,on,label){btn.disabled=on;btn.innerHTML=on?'<svg class="ico spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.2-8.5"/></svg> Un momento…':label;}
+document.getElementById("btn-signup").onclick=async()=>{
+  const name=su_name.value.trim(),email=su_email.value.trim(),pass=su_pass.value;
+  if(!name||!email||pass.length<6) return showMsg("msg-signup","Completa nombre, correo y contraseña de 6+ caracteres.","error");
+  if(!supa) return showMsg("msg-signup","Configura Supabase primero (GUÍA.md).","error");
+  const btn=document.getElementById("btn-signup"); setLoading(btn,true);
+  try{const {data,error}=await supa.auth.signUp({email,password:pass,options:{data:{nombre:name}}});if(error)throw error;
+    await supa.from("leads").insert({email,nombre:name,origen:"youtube"});
+    if(data.session) enterApp(email); else showMsg("msg-signup","¡Listo! Revisa tu correo para confirmar y luego inicia sesión.","ok");
+  }catch(e){const m=(e.message||"").toLowerCase();showMsg("msg-signup",m.includes("registered")?"Ese correo ya tiene cuenta. Usa «Entrar».":"No se pudo crear la cuenta: "+e.message,"error");}
+  finally{setLoading(btn,false,"Acceder gratis");}
+};
+document.getElementById("btn-login").onclick=async()=>{
+  const email=li_email.value.trim(),pass=li_pass.value;
+  if(!email||!pass) return showMsg("msg-login","Escribe tu correo y contraseña.","error");
+  if(!supa) return showMsg("msg-login","Configura Supabase primero (GUÍA.md).","error");
+  const btn=document.getElementById("btn-login"); setLoading(btn,true);
+  try{const {error}=await supa.auth.signInWithPassword({email,password:pass});if(error)throw error;enterApp(email);}
+  catch(e){showMsg("msg-login","Correo o contraseña incorrectos.","error");}finally{setLoading(btn,false,"Entrar");}
+};
+document.getElementById("btn-logout").onclick=async()=>{if(supa)await supa.auth.signOut();document.getElementById("view-app").style.display="none";document.getElementById("view-auth").classList.remove("hidden");};
+function enterApp(email){document.getElementById("user-email").textContent=email;document.getElementById("view-auth").classList.add("hidden");document.getElementById("view-app").style.display="block";}
+(async()=>{if(!supa)return;const {data}=await supa.auth.getSession();if(data.session)enterApp(data.session.user.email);})();
+
+/* ===================== UTILIDADES ===================== */
+function fmt(n){n=Number(n)||0;if(n>=1e6)return(n/1e6).toFixed(n>=1e7?0:1)+"M";if(n>=1e3)return(n/1e3).toFixed(n>=1e5?0:1)+"K";return Math.round(n).toLocaleString("es");}
+function flagCC(cc){if(!cc)return"🌐";return cc.toUpperCase().replace(/./g,c=>String.fromCodePoint(127397+c.charCodeAt(0)));}
+function parseDur(iso){const m=(iso||"").match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);if(!m)return 0;return(+(m[1]||0))*3600+(+(m[2]||0))*60+(+(m[3]||0));}
+function fmtDur(s){s=Math.round(s);if(s<60)return s+" s";const m=Math.floor(s/60),ss=s%60;if(m<60)return m+" min"+(ss&&m<10?" "+ss+"s":"");const h=Math.floor(m/60);return h+" h "+(m%60)+" min";}
+function median(a){if(!a.length)return 0;const s=[...a].sort((x,y)=>x-y);const m=Math.floor(s.length/2);return s.length%2?s[m]:(s[m-1]+s[m])/2;}
+function detectLang(titles){const es=["de","la","el","que","los","las","una","con","para","por","cómo","más","esto","así","tu","mi"],en=["the","of","and","to","you","for","how","this","with","your","what","why","best"];let e=0,n=0;const t=titles.join(" ").toLowerCase();es.forEach(w=>{e+=(t.match(new RegExp("\\b"+w+"\\b","g"))||[]).length;});en.forEach(w=>{n+=(t.match(new RegExp("\\b"+w+"\\b","g"))||[]).length;});return e>=n?"es":"en";}
+function topWords(titles,k){const stop=new Set("de la el que los las una con para por como más mi tu un en y a o un como the of and to you for how this with your what why is in on at it i de del al un".split(" "));const f={};titles.forEach(t=>t.toLowerCase().replace(/[^\wáéíóúñü\s]/g," ").split(/\s+/).forEach(w=>{if(w.length>3&&!stop.has(w))f[w]=(f[w]||0)+1;}));return Object.entries(f).sort((a,b)=>b[1]-a[1]).slice(0,k).map(x=>x[0]);}
+
+function fmtDT(d){try{return d.toLocaleString("es",{weekday:"long",day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});}catch(e){return d.toLocaleString();}}
+function thumbHD(id){return "https://i.ytimg.com/vi/"+id+"/maxresdefault.jpg";}
+function titleSEO(t){const tags=[];if(/\d/.test(t))tags.push("Número/cifra");if(/[?¿]/.test(t))tags.push("Pregunta (curiosidad)");if(/[A-ZÁÉÍÓÚÑ]{3,}/.test(t))tags.push("Mayúsculas de énfasis");const power=["gratis","fácil","facil","rápido","rapido","mejor","secreto","secretos","nunca","siempre","truco","trucos","error","errores","cómo","como","guía","guia","definitivo","increíble","nuevo","ahora","paso a paso"];const seen=[];power.forEach(w=>{if(seen.length<2&&new RegExp("\\b"+w+"\\b","i").test(t))seen.push(w);});seen.forEach(w=>tags.push("Gancho: "+w));const len=t.length;tags.push(len>=40&&len<=70?"Longitud ideal ("+len+")":len<40?"Corto ("+len+")":"Largo ("+len+")");return tags;}
+const CATEGORIES={1:"Cine y animación",2:"Autos y vehículos",10:"Música",15:"Mascotas y animales",17:"Deportes",18:"Cortometrajes",19:"Viajes y eventos",20:"Videojuegos",21:"Videoblogs",22:"Gente y blogs",23:"Comedia",24:"Entretenimiento",25:"Noticias y política",26:"Cómo hacerlo y estilo",27:"Educación",28:"Ciencia y tecnología",29:"Sin fines de lucro"};
+const DOW=["domingos","lunes","martes","miércoles","jueves","viernes","sábados"];
+const PERSONA={27:{age:"18 a 44 años",motiv:"aprender algo concreto y aplicarlo",seek:"tutoriales claros y al grano"},28:{age:"18 a 44 años",motiv:"entender cómo funcionan las cosas",seek:"explicaciones y novedades"},20:{age:"13 a 34 años",motiv:"entretenerse y descubrir juegos",seek:"gameplays y guías"},24:{age:"16 a 34 años",motiv:"distraerse y pasar un buen rato",seek:"contenido ágil y entretenido"},23:{age:"16 a 34 años",motiv:"reírse y compartir",seek:"humor y formatos virales"},26:{age:"18 a 44 años",motiv:"mejorar su estilo de vida",seek:"consejos prácticos"},22:{age:"18 a 44 años",motiv:"conectar con la historia del creador",seek:"cercanía y autenticidad"},10:{age:"13 a 44 años",motiv:"disfrutar y descubrir música",seek:"videos y novedades musicales"},25:{age:"25 a 54 años",motiv:"estar informado",seek:"análisis y actualidad"},17:{age:"18 a 44 años",motiv:"seguir su pasión deportiva",seek:"resúmenes y análisis"},19:{age:"25 a 54 años",motiv:"inspirarse para viajar",seek:"guías y experiencias"}};
+
+/* iconos */
+const I={users:'<circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>',eye:'<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>',heart:'<path d="M19 14c1.5-1.5 3-3.2 3-5.5A3.5 3.5 0 0 0 12 6 3.5 3.5 0 0 0 2 8.5C2 10.8 3.5 12.5 5 14l7 7z"/>',trend:'<path d="M22 7 13.5 15.5 8.5 10.5 2 17"/><path d="M16 7h6v6"/>',clock:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',globe:'<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z"/>',search:'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',hash:'<path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/>',spark:'<path d="m12 3 1.9 5.8H20l-4.9 3.6 1.9 5.8L12 14.6 7 18.2l1.9-5.8L4 8.8h6.1z"/>',play:'<polygon points="5 3 19 12 5 21"/>',msg:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',film:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 3v18M17 3v18M3 12h18M3 7.5h4M3 16.5h4M17 7.5h4M17 16.5h4"/>',cal:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',bolt:'<path d="M13 2 3 14h9l-1 8 10-12h-9z"/>',lock:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',target:'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',type:'<path d="M4 7V4h16v3M9 20h6M12 4v16"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 12 0v1"/>',pin:'<path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/>',fire:'<path d="M12 2c1 3 4 4 4 8a4 4 0 0 1-8 0c0-1 .5-2 1-2.5C9 9 9 6 12 2z"/><path d="M12 22a6 6 0 0 0 6-6c0-3-2-5-3-6 .5 4-3 4-3 7a2 2 0 0 1-4 0c0-1 0-2 1-3-2 1-3 3-3 5a6 6 0 0 0 6 6z"/>'};
+const svg=(p,c="currentColor",s=15)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+function sparkPath(vals,w,h){const max=Math.max(...vals),min=Math.min(...vals),pad=8;const x=i=>pad+i*(w-pad*2)/Math.max(vals.length-1,1);const y=v=>h-pad-((v-min)/(max-min||1))*(h-pad*2);let line="M"+vals.map((v,i)=>`${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(" L ");return{line,area:line+` L ${x(vals.length-1).toFixed(1)} ${h-pad} L ${x(0).toFixed(1)} ${h-pad} Z`};}
+function recsCard(r){return`<div class="card"><div class="rec-top"><span class="rec-ic">${svg(I[r.ic],"currentColor",16)}</span><span class="rec-impact">${r.impact}</span></div><div class="rec-label">${r.label}</div><p class="rec-body">${r.body}</p></div>`;}
+
+/* ===================== API YOUTUBE ===================== */
+const YT="https://www.googleapis.com/youtube/v3/";
+async function ytGet(path){const r=await fetch(YT+path+(path.includes("?")?"&":"?")+"key="+YOUTUBE_API_KEY);const j=await r.json();if(j.error)throw new Error(j.error.message||"Error de la API de YouTube");return j;}
+async function resolveChannelId(url){
+  let m=url.match(/channel\/(UC[\w-]+)/i); if(m)return m[1];
+  m=url.match(/@([\w.\-]+)/); if(m){const j=await ytGet(`channels?part=id&forHandle=@${m[1]}`);if(j.items&&j.items[0])return j.items[0].id;}
+  m=url.match(/user\/([\w\-]+)/i); if(m){const j=await ytGet(`channels?part=id&forUsername=${m[1]}`);if(j.items&&j.items[0])return j.items[0].id;}
+  m=url.match(/(?:watch\?v=|youtu\.be\/|shorts\/)([\w-]+)/); if(m){const j=await ytGet(`videos?part=snippet&id=${m[1]}`);if(j.items&&j.items[0])return j.items[0].snippet.channelId;}
+  m=url.match(/youtube\.com\/(?:c\/)?([\w\-]+)/i); if(m){const j=await ytGet(`search?part=snippet&type=channel&maxResults=1&q=${encodeURIComponent(m[1])}`);if(j.items&&j.items[0])return j.items[0].id.channelId;}
+  return null;
+}
+async function fetchYouTube(url){
+  const id=await resolveChannelId(url);
+  if(!id) throw new Error("No encontré ese canal. Pega el enlace del canal (no de un video) o usa el formato youtube.com/@nombre.");
+  const ch=await ytGet(`channels?part=snippet,statistics,contentDetails&id=${id}`);
+  if(!ch.items||!ch.items[0]) throw new Error("Canal no encontrado.");
+  const c=ch.items[0];
+  const uploads=c.contentDetails.relatedPlaylists.uploads;
+  let videos=[];
+  try{
+    const pl=await ytGet(`playlistItems?part=snippet&maxResults=50&playlistId=${uploads}`);
+    const ids=pl.items.map(i=>i.snippet.resourceId.videoId).filter(Boolean);
+    if(ids.length){const v=await ytGet(`videos?part=snippet,statistics,contentDetails&id=${ids.join(",")}`);videos=v.items||[];}
+  }catch(e){}
+  return {c,videos};
+}
+
+/* ===================== ANÁLISIS ===================== */
+function analyzeChannel(c, raw){
+  const vids=raw.map(v=>({title:v.snippet.title,date:new Date(v.snippet.publishedAt),views:+v.statistics.viewCount||0,likes:+v.statistics.likeCount||0,comments:+v.statistics.commentCount||0,seconds:parseDur(v.contentDetails&&v.contentDetails.duration),tags:v.snippet.tags||[],cat:v.snippet.categoryId,thumb:(v.snippet.thumbnails&&(v.snippet.thumbnails.medium||v.snippet.thumbnails.default)||{}).url,id:v.id})).filter(v=>v.seconds>0||v.views>0);
+  const n=vids.length||1;
+  const viewsArr=vids.map(v=>v.views);
+  const medViews=median(viewsArr), avgViews=viewsArr.reduce((a,b)=>a+b,0)/n;
+  const avgDur=vids.reduce((a,v)=>a+v.seconds,0)/n;
+  const avgEng=vids.reduce((a,v)=>a+(v.views?(v.likes+v.comments)/v.views:0),0)/n*100;
+  const shorts=vids.filter(v=>v.seconds>0&&v.seconds<=60), longs=vids.filter(v=>v.seconds>60);
+  const avgOf=a=>a.length?a.reduce((s,v)=>s+v.views,0)/a.length:0;
+  const shortAvg=avgOf(shorts), longAvg=avgOf(longs);
+  const dates=vids.map(v=>v.date).sort((a,b)=>a-b);
+  let gaps=[];for(let i=1;i<dates.length;i++)gaps.push((dates[i]-dates[i-1])/86400000);
+  const avgGap=gaps.length?gaps.reduce((a,b)=>a+b,0)/gaps.length:0, perWeek=avgGap>0?7/avgGap:0;
+  const dow=[0,0,0,0,0,0,0];vids.forEach(v=>dow[v.date.getDay()]++);const bestDow=dow.indexOf(Math.max(...dow));
+  const titles=vids.map(v=>v.title);
+  const avgTitleLen=Math.round(titles.reduce((a,t)=>a+t.length,0)/n);
+  const withNum=Math.round(titles.filter(t=>/\d/.test(t)).length/n*100);
+  const withQ=Math.round(titles.filter(t=>/[?¿!¡]/.test(t)).length/n*100);
+  const tagF={};vids.forEach(v=>v.tags.forEach(t=>{const k=t.toLowerCase();tagF[k]=(tagF[k]||0)+1;}));
+  const topTags=Object.entries(tagF).sort((a,b)=>b[1]-a[1]).slice(0,12).map(x=>x[0]);
+  const catF={};vids.forEach(v=>{if(v.cat)catF[v.cat]=(catF[v.cat]||0)+1;});
+  const topCatId=(Object.entries(catF).sort((a,b)=>b[1]-a[1])[0]||[])[0];
+  const viral=[...vids].sort((a,b)=>b.views-a.views).slice(0,10).map(v=>({...v,factor:medViews>0?v.views/medViews:1,eng:v.views?(v.likes+v.comments)/v.views*100:0}));
+  const topDurAvg=viral.length?viral.slice(0,5).reduce((a,v)=>a+v.seconds,0)/Math.min(viral.length,5):avgDur;
+  return {n,medViews,avgViews,avgDur,avgEng,shortsN:shorts.length,longsN:longs.length,shortAvg,longAvg,avgGap,perWeek,bestDow:DOW[bestDow],avgTitleLen,withNum,withQ,topTags,topCatId,topCat:CATEGORIES[topCatId]||"Variado",viral,topDurAvg,lang:detectLang(titles),words:topWords(titles,8)};
+}
+
+function whyViral(v,a){
+  const r=[];
+  if(v.factor>=1.5) r.push(`Logró ${v.factor.toFixed(1)}× las vistas típicas del canal (${fmt(a.medViews)} de mediana)`);
+  if(a.avgDur>0&&v.seconds<a.avgDur*0.7) r.push(`Más corto que su media (${fmtDur(v.seconds)} vs ${fmtDur(a.avgDur)}): formato ágil y fácil de terminar`);
+  else if(a.avgDur>0&&v.seconds>a.avgDur*1.4) r.push(`Más largo y a fondo (${fmtDur(v.seconds)}): tema que aguanta más tiempo de visualización`);
+  if(/\d/.test(v.title)) r.push("Título con número: las listas y cifras concretas elevan el clic");
+  if(/[?¿]/.test(v.title)) r.push("Título en forma de pregunta: abre un bucle de curiosidad");
+  if(v.eng>a.avgEng*1.2&&a.avgEng>0) r.push(`Engagement superior: ${v.eng.toFixed(1)}% frente al ${a.avgEng.toFixed(1)}% habitual`);
+  if(!r.length) r.push("Tema con fuerte demanda dentro de su nicho");
+  return r;
+}
+function buildPersona(c,a){
+  const sn=c.snippet;
+  const loc = sn.country ? `${flagCC(sn.country)} ${sn.country}` : (a.lang==="es"?"Países hispanohablantes (estimado)":"Países de habla inglesa (estimado)");
+  const lang = a.lang==="es"?"Español":"Inglés";
+  const p = PERSONA[a.topCatId] || {age:"18 a 44 años",motiv:"informarse y entretenerse",seek:"contenido útil y entretenido"};
+  const interests = [a.topCat, ...a.words.slice(0,3)].join(", ");
+  const fmtWord = a.shortsN>a.longsN ? "formatos cortos y rápidos (Shorts)" : "videos de formato largo";
+  const story = `El espectador típico de <b>${sn.title}</b> probablemente tiene entre <b>${p.age}</b>, consume contenido en <b>${lang.toLowerCase()}</b> y se acerca al canal para <b>${p.motiv}</b>. Busca ${p.seek} y está acostumbrado a ${fmtWord}. Sus intereses giran en torno a ${interests}.`;
+  return {loc,lang,age:p.age,motiv:p.motiv,seek:p.seek,interests,story};
+}
+function buildRecs(a){
+  const recs=[];
+  recs.push({ic:"play",label:"Replica tu fórmula viral",impact:"Alto impacto",body:`"${a.viral[0].title}" multiplicó por ${a.viral[0].factor.toFixed(1)} tus vistas. Haz una segunda parte o una serie con ese ángulo: ya está validado que tu audiencia lo quiere.`});
+  if(a.shortsN&&a.longsN){const win=a.shortAvg>a.longAvg?"Shorts":"videos largos";const wAvg=a.shortAvg>a.longAvg?a.shortAvg:a.longAvg;const lAvg=a.shortAvg>a.longAvg?a.longAvg:a.shortAvg;recs.push({ic:"film",label:"Tu formato ganador",impact:"Alto impacto",body:`Tus ${win} promedian ${fmt(wAvg)} vistas frente a ${fmt(lAvg)} del otro formato. Inclina tu calendario hacia ${win} sin abandonar del todo el otro.`});}
+  recs.push({ic:"clock",label:"Duración óptima",impact:"Medio impacto",body:`Tus videos más vistos rondan los ${fmtDur(a.topDurAvg)}. Usa esa duración como referencia para tu contenido principal.`});
+  recs.push({ic:"type",label:"Anatomía de títulos",impact:a.withNum<40||a.withQ<25?"Alto impacto":"Medio impacto",body:`${a.withNum}% de tus títulos llevan números y ${a.withQ}% usan preguntas o exclamaciones. ${(a.withNum<40||a.withQ<25)?"Sube esa proporción: números y preguntas son de los mayores impulsores de CTR.":"Mantienes buenos ganchos; sigue probando variantes."}`});
+  recs.push({ic:"cal",label:"Constancia",impact:a.perWeek<1?"Alto impacto":"Medio impacto",body:a.perWeek<1?`Publicas ~${a.perWeek.toFixed(1)} videos/semana. Sube la frecuencia y fija un día (sueles publicar los ${a.bestDow}): la regularidad es clave para el algoritmo.`:`Mantienes ~${a.perWeek.toFixed(1)} videos/semana, buen ritmo. Conserva ese día fijo (los ${a.bestDow}).`});
+  recs.push({ic:"search",label:"SEO de YouTube",impact:"Alto impacto",body:"Coloca tu palabra clave en los primeros 60 caracteres del título y en los 2 primeros renglones de la descripción. Reutiliza tus tags más fuertes y añade capítulos. Meta: CTR sobre 5%."});
+  return recs;
+}
+
+/* ===================== RENDER ===================== */
+function renderYouTube({c,videos}){
+  const sn=c.snippet,st=c.statistics;
+  const subs=+st.subscriberCount||0,views=+st.viewCount||0,vc=+st.videoCount||0,avg=vc>0?Math.round(views/vc):0;
+  const handle=(sn.customUrl||"").replace(/^@/,"");
+  const country=sn.country?`${flagCC(sn.country)} ${sn.country}`:"No especificado";
+  const year=sn.publishedAt?new Date(sn.publishedAt).getFullYear():"";
+  const avatar=(sn.thumbnails&&(sn.thumbnails.medium||sn.thumbnails.default)||{}).url||"";
+  const desc=(sn.description||"").slice(0,220);
+  const res=document.getElementById("results");
+
+  if(!videos.length){
+    res.innerHTML=`<div class="banner real">${svg(I.bolt,"currentColor",14)}<div><b>Datos reales de YouTube.</b></div></div>
+    <div class="profile"><div class="avatar">${avatar?`<img src="${avatar}">`:sn.title[0]}</div><div><div class="profile-name">${sn.title}<span class="platform-pill">YouTube</span></div><div class="profile-sub">${sn.customUrl?"@"+handle+" · ":""}País: ${country}${year?" · Desde "+year:""}</div></div></div>
+    <div class="kpi-grid"><div class="card kpi"><span class="kpi-ic">${svg(I.users,"currentColor",17)}</span><div class="kpi-val">${fmt(subs)}</div><div class="kpi-label">Suscriptores</div></div><div class="card kpi"><span class="kpi-ic">${svg(I.eye,"currentColor",17)}</span><div class="kpi-val">${fmt(views)}</div><div class="kpi-label">Vistas totales</div></div><div class="card kpi"><span class="kpi-ic">${svg(I.film,"currentColor",17)}</span><div class="kpi-val">${fmt(vc)}</div><div class="kpi-label">Videos</div></div><div class="card kpi"><span class="kpi-ic">${svg(I.trend,"currentColor",17)}</span><div class="kpi-val">${fmt(avg)}</div><div class="kpi-label">Vistas/video</div></div></div>
+    <div class="banner info" style="margin-top:16px">${svg(I.bolt,"currentColor",14)}<div>Este canal no tiene videos públicos recientes para analizar en detalle. Las métricas generales sí son reales.</div></div>`;
+    res.style.display="block";return;
+  }
+
+  const a=analyzeChannel(c,videos);
+  const persona=buildPersona(c,a);
+  const fmtDom = a.shortsN>a.longsN ? `Shorts (${Math.round(a.shortsN/(a.shortsN+a.longsN)*100)}%)` : `Videos largos (${Math.round(a.longsN/(a.shortsN+a.longsN)*100)}%)`;
+  const chrono=[...videos].map(v=>+v.statistics.viewCount||0).reverse();
+  const W=520,H=170;const sp=chrono.length>1?sparkPath(chrono,W,H):null;
+
+  res.innerHTML=`
+  <div class="banner real">${svg(I.bolt,"currentColor",14)}<div><b>Datos reales de YouTube</b> · análisis de ${a.n} videos recientes tomados en vivo desde la API oficial.</div></div>
+
+  <div class="profile"><div class="avatar">${avatar?`<img src="${avatar}">`:sn.title[0]}</div>
+    <div><div class="profile-name">${sn.title}<span class="platform-pill">YouTube</span></div>
+    <div class="profile-sub">${sn.customUrl?"@"+handle+" · ":""}${svg(I.pin,"currentColor",12)} ${country}${year?" · Desde "+year:""}</div></div></div>
+  ${desc?`<p class="desc">${desc}${sn.description.length>220?"…":""}</p>`:""}
+
+  <div class="kpi-grid">
+    <div class="card kpi"><span class="kpi-ic">${svg(I.users,"currentColor",17)}</span><div class="kpi-val">${fmt(subs)}</div><div class="kpi-label">Suscriptores</div></div>
+    <div class="card kpi"><span class="kpi-ic">${svg(I.eye,"currentColor",17)}</span><div class="kpi-val">${fmt(views)}</div><div class="kpi-label">Vistas totales</div></div>
+    <div class="card kpi"><span class="kpi-ic">${svg(I.film,"currentColor",17)}</span><div class="kpi-val">${fmt(vc)}</div><div class="kpi-label">Videos</div></div>
+    <div class="card kpi"><span class="kpi-ic">${svg(I.trend,"currentColor",17)}</span><div class="kpi-val">${fmt(avg)}</div><div class="kpi-label">Vistas/video</div><div class="kpi-sub">histórico</div></div>
+  </div>
+
+  <div class="section-h">${svg(I.target,"currentColor",18)} Resumen estratégico</div>
+  <div class="card"><div class="strat-grid">
+    <div class="stat-box"><div class="stat-label">${svg(I.cal,"currentColor",13)} Frecuencia</div><div class="stat-val">${a.perWeek>=1?a.perWeek.toFixed(1)+" / semana":"cada "+Math.round(a.avgGap)+" días"}</div><div class="stat-desc">ritmo de publicación</div></div>
+    <div class="stat-box"><div class="stat-label">${svg(I.film,"currentColor",13)} Formato dominante</div><div class="stat-val">${fmtDom}</div><div class="stat-desc">de los videos analizados</div></div>
+    <div class="stat-box"><div class="stat-label">${svg(I.clock,"currentColor",13)} Duración típica</div><div class="stat-val">${fmtDur(a.avgDur)}</div><div class="stat-desc">promedio por video</div></div>
+    <div class="stat-box"><div class="stat-label">${svg(I.cal,"currentColor",13)} Día preferido</div><div class="stat-val" style="text-transform:capitalize">${a.bestDow}</div><div class="stat-desc">publica más en ese día</div></div>
+    <div class="stat-box"><div class="stat-label">${svg(I.heart,"currentColor",13)} Engagement</div><div class="stat-val">${a.avgEng.toFixed(1)}%</div><div class="stat-desc">(likes+comentarios)/vistas</div></div>
+    <div class="stat-box"><div class="stat-label">${svg(I.fire,"currentColor",13)} Categoría</div><div class="stat-val">${a.topCat}</div><div class="stat-desc">temática principal</div></div>
+  </div></div>
+
+  <div class="section-h">${svg(I.spark,"currentColor",18)} Su estrategia de contenido, descifrada</div>
+  <div class="card"><div class="insights">
+    <div class="insight"><span class="insight-ic">${svg(I.cal,"currentColor",16)}</span><div class="insight-txt"><b>Constancia.</b> Publica ${a.perWeek>=1?"alrededor de "+a.perWeek.toFixed(1)+" videos por semana":"aproximadamente cada "+Math.round(a.avgGap)+" días"}, sobre todo los <b>${a.bestDow}</b>. <span>${a.perWeek>=2?"Un ritmo alto que alimenta bien al algoritmo.":a.perWeek>=0.8?"Un ritmo moderado y sostenible.":"Un ritmo bajo; hay margen para publicar más."}</span></div></div>
+    <div class="insight"><span class="insight-ic">${svg(I.film,"currentColor",16)}</span><div class="insight-txt"><b>Formato.</b> ${a.shortsN&&a.longsN?`Mezcla ${a.shortsN} Shorts y ${a.longsN} videos largos. Sus ${a.shortAvg>a.longAvg?"Shorts":"videos largos"} rinden más (${fmt(Math.max(a.shortAvg,a.longAvg))} vs ${fmt(Math.min(a.shortAvg,a.longAvg))} vistas de media).`:a.shortsN?"Se apoya casi por completo en Shorts.":"Se apoya en videos de formato largo."}</div></div>
+    <div class="insight"><span class="insight-ic">${svg(I.clock,"currentColor",16)}</span><div class="insight-txt"><b>Duración.</b> Sus videos duran <b>${fmtDur(a.avgDur)}</b> de media, y los que mejor funcionan rondan los <b>${fmtDur(a.topDurAvg)}</b>. <span>Esa es su duración "ganadora".</span></div></div>
+    <div class="insight"><span class="insight-ic">${svg(I.type,"currentColor",16)}</span><div class="insight-txt"><b>Títulos.</b> Promedian ${a.avgTitleLen} caracteres. El <b>${a.withNum}%</b> incluye números y el <b>${a.withQ}%</b> usa preguntas o exclamaciones. <span>${a.withNum>40||a.withQ>25?"Explotan bien los ganchos de curiosidad.":"Usan pocos ganchos; ahí hay oportunidad."}</span></div></div>
+  </div></div>
+
+  ${a.topTags.length?`<div class="card mb16"><div class="card-title">${svg(I.hash)} Palabras clave / tags que más usa</div><div class="chips">${a.topTags.map(t=>`<span class="chip">${t}</span>`).join("")}</div></div>`:""}
+  ${a.words.length?`<div class="card mb16"><div class="card-title">${svg(I.type)} Palabras que más repite en sus títulos</div><div class="chips">${a.words.map(t=>`<span class="chip">${t}</span>`).join("")}</div></div>`:""}
+
+  <div class="section-h">${svg(I.fire,"currentColor",18)} Top ${a.viral.length} videos virales · ficha completa</div>
+  ${a.viral.map((v,i)=>{const watch="https://www.youtube.com/watch?v="+v.id;return `<div class="viral">
+    <div class="viral-left">
+      <div style="position:relative">${v.thumb?`<img class="viral-thumb" src="${v.thumb}" loading="lazy">`:`<div class="viral-thumb"></div>`}<div class="viral-rank">${i+1}</div></div>
+      <a class="vbtn" href="${watch}" target="_blank" rel="noopener">${svg(I.play,"#fff",12)} Ver video</a>
+      <a class="vbtn" href="${thumbHD(v.id)}" target="_blank" rel="noopener" download>⬇ Miniatura HD</a>
+      <a class="vbtn ghost" href="${watch}" target="_blank" rel="noopener">📝 Transcripción</a>
+    </div>
+    <div class="viral-body">
+      <div class="viral-title">${v.title}</div>
+      <div class="viral-meta"><span class="viral-tag factor">${svg(I.fire,"currentColor",12)} ${v.factor.toFixed(1)}× la media</span><span class="viral-tag plain">${svg(I.eye,"currentColor",12)} ${fmt(v.views)}</span><span class="viral-tag plain">${svg(I.heart,"currentColor",12)} ${fmt(v.likes)}</span><span class="viral-tag plain">${svg(I.msg,"currentColor",12)} ${fmt(v.comments)}</span></div>
+      <div class="viral-sub">${svg(I.cal,"currentColor",12)} Subido: ${fmtDT(v.date)} · ${svg(I.clock,"currentColor",12)} ${fmtDur(v.seconds)}</div>
+      ${v.tags&&v.tags.length?`<div class="viral-tags">${v.tags.slice(0,8).map(t=>`<span class="vtag">${t}</span>`).join("")}</div>`:""}
+      <div class="why-label">Por qué funcionó</div>
+      <ul class="reasons">${whyViral(v,a).map(r=>`<li>${r}</li>`).join("")}</ul>
+      <div class="seo-label">Receta SEO del título</div>
+      <div class="seo-chips">${titleSEO(v.title).map(t=>`<span class="seo-chip">${t}</span>`).join("")}</div>
+    </div></div>`;}).join("")}
+
+  ${sp?`<div class="card mb16" style="margin-top:4px"><div class="card-title">${svg(I.trend)} Vistas de los últimos ${chrono.length} videos</div>
+    <svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${'#FF3B3B'}" stop-opacity=".4"/><stop offset="100%" stop-color="${'#FF3B3B'}" stop-opacity="0"/></linearGradient></defs><path d="${sp.area}" fill="url(#g)"/><path d="${sp.line}" fill="none" stroke="#FF3B3B" stroke-width="2.5"/></svg>
+    <p class="note" style="margin-top:8px">De más antiguo (izquierda) a más reciente (derecha).</p></div>`:""}
+
+  <div class="section-h">${svg(I.user,"currentColor",18)} Buyer persona · audiencia probable</div>
+  <div class="banner info">${svg(I.lock,"currentColor",14)}<div>Perfil <b>estimado a partir del contenido</b> (idioma, temas y formato). No son datos demográficos reales de los espectadores: la edad, el género y la ubicación de la audiencia son privados y solo los ve el dueño en YouTube Studio.</div></div>
+  <div class="card">
+    <div class="persona-grid">
+      <div class="persona-attr"><div class="pa-label">${svg(I.pin,"currentColor",13)} Ubicación probable</div><div class="pa-val">${persona.loc}</div></div>
+      <div class="persona-attr"><div class="pa-label">${svg(I.globe,"currentColor",13)} Idioma</div><div class="pa-val">${persona.lang}</div></div>
+      <div class="persona-attr"><div class="pa-label">${svg(I.user,"currentColor",13)} Edad estimada</div><div class="pa-val">${persona.age}</div></div>
+      <div class="persona-attr"><div class="pa-label">${svg(I.target,"currentColor",13)} Qué busca</div><div class="pa-val">${persona.seek}</div></div>
+    </div>
+    <div class="persona-story">${persona.story}</div>
+  </div>
+
+  <div class="section-h">${svg(I.spark,"currentColor",18)} Recomendaciones para crecer</div>
+  <div class="recs">${buildRecs(a).map(recsCard).join("")}</div>`;
+  res.style.display="block";
+}
+
+/* ===================== ORQUESTADOR ===================== */
+async function run(){
+  const url=document.getElementById("url-input").value.trim();
+  if(!url) return;
+  const btn=document.getElementById("btn-analyze");btn.disabled=true;btn.textContent="Analizando…";
+  const res=document.getElementById("results");
+  const isYT=/youtu\.?be|youtube\.com/i.test(url);
+  try{
+    if(!isYT){
+      res.innerHTML=`<div class="banner info">${svg(I.bolt,"currentColor",14)}<div><b>Esta herramienta analiza canales de YouTube.</b> Pega el enlace de un canal de YouTube, por ejemplo <code>youtube.com/@nombre</code>.</div></div>`;
+      res.style.display="block";
+    }else if(!YT_ON){
+      res.innerHTML=`<div class="banner demo">${svg(I.bolt,"currentColor",14)}<div><b>Falta tu clave de YouTube.</b> Configúrala en el archivo (GUÍA.md, Parte 4) para activar el análisis real.</div></div>`;
+      res.style.display="block";
+    }else{
+      const data=await fetchYouTube(url);
+      renderYouTube(data);
+      res.scrollIntoView({behavior:"smooth",block:"start"});
+    }
+  }catch(e){
+    res.innerHTML=`<div class="banner demo">${svg(I.bolt,"currentColor",14)}<div><b>No se pudo analizar.</b> ${e.message}</div></div>`;
+    res.style.display="block";
+  }finally{ btn.disabled=false;btn.textContent="Analizar"; }
+}
+document.getElementById("btn-analyze").onclick=run;
+document.getElementById("url-input").addEventListener("keydown",e=>{if(e.key==="Enter")run();});
+</script>
+</body>
+</html>
